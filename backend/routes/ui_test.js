@@ -112,7 +112,7 @@ router.post('/ui-report', async (req, res) => {
     }
     try {
         const report = await generateUIUXReport(url);
-        res.json({ report });
+        res.json({url, report });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'An error occurred while generating the report' });
