@@ -1,9 +1,11 @@
-const lighthouse = require('lighthouse').default;
+// const lighthouse = require('lighthouse').default;
 const puppeteer = require('puppeteer');
 
 async function runLighthouse(url, options = {}) {
   let browser;
   try {
+
+    const lighthouse = await import('lighthouse');
     // Launch headless browser
     browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
@@ -21,7 +23,7 @@ async function runLighthouse(url, options = {}) {
     const lhOptions = { ...defaultOptions, ...options };
 
     // Run Lighthouse
-    const runnerResult = await lighthouse(url, lhOptions);
+    const runnerResult = await lighthouse.default(url, lhOptions);
     const audits = runnerResult.lhr.audits;
 
     // Extract performance metrics
