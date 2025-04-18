@@ -31,14 +31,13 @@ async function runLighthouse(url, options = {}) {
         interactive: audits['interactive']?.numericValue || 0,
         fcp: audits['first-contentful-paint']?.numericValue || 0, // Added FCP
       },
-      unoptimizedImages: audits['unoptimized-images']?.details?.items.map(item => ({
+      unsizedImages: audits['unsized-images']?.details?.items.map(item => ({
         url: item.url,
-        size: item.wastedBytes,
+        snippet: item.node.snippet,
       })) || [],
       httpRequests: audits['resource-summary']?.details?.items || [],
       renderBlocking: audits['render-blocking-resources']?.details?.items.map(item => item.url) || [],
-      caching: audits['uses-long-cache-ttl']?.score === 0 ? 'No caching detected' : 'Caching present',
-      tapTargets: lhOptions.emulatedFormFactor === 'mobile' ? audits['tap-targets']?.details?.items || [] : [],
+      caching: audits['uses-long-cache-ttl']?.score === 0 ? 'No caching detected' : 'Caching present'
     };
 
     await browser.close();
