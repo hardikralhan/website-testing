@@ -116,6 +116,7 @@ router.post('/generate-report', async (req, res) => {
         
         // Step 3: Analyze the screenshot with OpenAI
         const analysis = await analyzeWithAI(base64Image);
+        analysis.url = url; // Include the URL in the analysis response
         
         // Step 4: Clean up the screenshot file
         fs.unlinkSync(screenshotPath);
