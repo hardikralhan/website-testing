@@ -2,9 +2,11 @@ const express = require('express');
 const router = express.Router();
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const {getRemediationFromOpenAI} = require('../utility/accessibility_remidy'); // Adjust path as necessary
+const {wcagTagMapping, getWcagName} = require('../utility/constant');
 
 router.post('/accessibility-report', async (req, res) => {
-    console.log("started accessibility report");
+    console.log('Started accessibility report');
     
     const { url } = req.body;
 
@@ -31,47 +33,49 @@ router.post('/accessibility-report', async (req, res) => {
         });
 
         // Validate results
-        if (!results || !results.violations) {
+        if (!results || !results.violations || !results.passes) {
             throw new Error('Axe-core did not return expected results');
         }
 
-        // Optional: Uncomment and adjust for a formatted report
-        /*
-        const colorContrast = results.violations.filter(v => v.id === 'color-contrast');
-        const ariaViolations = results.violations.filter(v => v.id === 'aria-required-attr');
+        // Process violations with WCAG guidelines and remediation steps
+        const violations = await Promise.all(results.violations.map(async (v) => {
+            const remediation = await getRemediationFromOpenAI(v.id, v.description);
+            return {
+                id: v.id,
+                description: v.description,
+                impact: v.impact,
+                wcag: v.tags
+                    .filter(tag => tag.startsWith('wcag'))
+                    .map(tag => getWcagName(tag)), 
+                remediation: remediation,
+                helpUrl: v.helpUrl, 
+                nodes: v.nodes.map(node => ({
+                    target: node.target,
+                    failureSummary: node.failureSummary
+                }))
+            };
+        }));
 
-        let report = `# Accessibility Report for ${url}\n\n`;
-        report += `## Summary\n`;
-        report += `- Poor Color Contrast Issues: ${colorContrast.length}\n`;
-        report += `- Missing ARIA Attributes Issues: ${ariaViolations.length}\n\n`;
+        // Process passes (positive findings)
+        const passes = results.passes.map(p => ({
+            id: p.id,
+            description: p.description,
+            impact: p.impact,
+            wcag: p.tags
+                .filter(tag => tag.startsWith('wcag'))
+                .map(tag => getWcagName(tag)), 
+            helpUrl: p.helpUrl, 
+            nodes: p.nodes.map(node => ({
+                target: node.target
+            }))
+        }));
 
-        if (colorContrast.length > 0) {
-            report += `## Poor Color Contrast\n`;
-            colorContrast.forEach((v, i) => {
-                const node = v.nodes[0];
-                report += `### Issue ${i + 1}: Hard-to-Read Text\n`;
-                report += `- **Location**: \`${node.target.join(' ')}\`\n`;
-                report += `- **What’s Wrong**: ${node.failureSummary}\n`;
-                report += `- **Why It Matters**: Visually impaired users may struggle.\n`;
-                report += `- **Fix**: Adjust text or background colors.\n\n`;
-            });
-        }
-
-        if (ariaViolations.length > 0) {
-            report += `## Missing ARIA Attributes\n`;
-            ariaViolations.forEach((v, i) => {
-                const node = v.nodes[0];
-                report += `### Issue ${i + 1}: Missing Attribute\n`;
-                report += `- **Location**: \`${node.target.join(' ')}\`\n`;
-                report += `- **What’s Wrong**: ${node.failureSummary}\n`;
-                report += `- **Why It Matters**: Screen readers may misinterpret this.\n`;
-                report += `- **Fix**: Add the required ARIA attribute.\n\n`;
-            });
-        }
-        */
-
-        // Send raw violations as JSON (or modify to send `report` if desired)
-        res.json({ url: url, violations: results.violations });
+        // Send the enhanced report as JSON
+        res.json({
+            url: url,
+            violations: violations,
+            passes: passes
+        });
     } catch (error) {
         console.error('Accessibility report error:', error);
         res.status(500).json({ error: `Failed to generate report: ${error.message}` });
