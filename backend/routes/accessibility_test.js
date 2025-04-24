@@ -51,6 +51,7 @@ router.post('/accessibility-report', async (req, res) => {
                 helpUrl: v.helpUrl, 
                 nodes: v.nodes.map(node => ({
                     target: node.target,
+                    html: node.html,
                     failureSummary: node.failureSummary
                 }))
             };
