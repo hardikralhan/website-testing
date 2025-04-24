@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const puppeteer = require('puppeteer');
 const fs = require('fs');
-const {getRemediationFromOpenAI} = require('../utility/accessibility_remidy'); // Adjust path as necessary
-const {wcagTagMapping, getWcagName} = require('../utility/constant');
+const {getRemediationFromOpenAI} = require('../utility/accessibility_remidy');
+const {getWcagName} = require('../utility/constant');
 
 router.post('/accessibility-report', async (req, res) => {
     console.log('Started accessibility report');
