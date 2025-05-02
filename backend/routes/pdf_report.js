@@ -2,49 +2,17 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const puppeteer = require('puppeteer');
+const ejs = require('ejs');
+const path = require('path');
+const { glob } = require('fs');
 
-// Utility functions to generate HTML for PDF
-function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+// Utility function to render HTML from EJS template for PDF
+async function generateHtml(results, url) {
+  const templatePath = path.resolve(__dirname, '../views/pdf_report.ejs');
+  return await ejs.renderFile(templatePath, { results, url }, { async: true });
 }
 
-function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-}
-
-function generateHtml(data) {
-  const url = data.accessibility?.url || '';
-  let html = `
-<html>
-  <head>
-    <meta charset='utf-8'>
-    <title>Combined Test Report</title>
-    <style>
-      body { font-family: Arial, sans-serif; padding: 20px; }
-      h1, h2 { color: #333; }
-      pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow: auto; }
-      section { margin-bottom: 40px; }
-    </style>
-  </head>
-  <body>
-    <h1>Combined Test Report for ${escapeHtml(url)}</h1>
-`;
-  for (const [key, value] of Object.entries(data)) {
-    html += `
-    <section>
-      <h2>${capitalize(key)} Test</h2>
-      <pre>${escapeHtml(JSON.stringify(value, null, 2))}</pre>
-    </section>
-`;
-  }
-  html += `
-  </body>
-</html>
-`;
-  return html;
-}
+let glabalResults = {};
 
 // API endpoint to generate PDF report for all tests
 router.post('/pdf-report', async (req, res) => {
@@ -66,8 +34,9 @@ router.post('/pdf-report', async (req, res) => {
     for (const ep of endpoints) {
       const response = await axios.post(baseUrl + ep.path, { url });
       results[ep.name] = response.data;
+      glabalResults[ep.name] = response.data; // Store results globally
     }
-    const htmlContent = generateHtml(results);
+    const htmlContent = await generateHtml(results, url);
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
