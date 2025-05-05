@@ -43,12 +43,14 @@ router.post('/pdf-report', async (req, res) => {
     const pdfBuffer = await page.pdf({ format: 'A4' });
     await browser.close();
 
-    // Send PDF response
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': 'attachment; filename=combined-report.pdf',
+    // Convert PDF buffer to base64
+    const pdfBase64 = pdfBuffer.toString('base64');
+
+    // Send JSON response with base64-encoded PDF
+    res.json({
+      pdf: pdfBase64,
+      filename: 'combined-report.pdf'
     });
-    return res.send(pdfBuffer);
   } catch (error) {
     console.error('Error generating PDF report:', error);
     return res.status(500).json({ error: 'Failed to generate PDF report' });

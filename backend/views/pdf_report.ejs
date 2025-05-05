@@ -64,19 +64,6 @@
               <% }); %>
             </tbody>
           </table>
-          <% /* Detailed nodes for each violation, excluding target */ %>
-          <% results.accessibility.violations.forEach(function(v) { %>
-            <details>
-              <summary>Details for Violation <%= v.id %></summary>
-              <% v.nodes.forEach(function(node, idx) { %>
-                <div style="margin-left:20px;margin-top:10px;">
-                  <p><strong>Node <%= idx + 1 %>:</strong></p>
-                  <p><strong>HTML:</strong> <code><%= node.html %></code></p>
-                  <p><strong>Failure Summary:</strong> <%= node.failureSummary %></p>
-                </div>
-              <% }); %> 
-            </details>
-          <% }); %> 
         <% } else { %>
           <p>No accessibility violations detected.</p>
         <% } %>
