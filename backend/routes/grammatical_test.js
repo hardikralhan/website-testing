@@ -38,7 +38,7 @@ router.post('/grammar-check', async (req, res) => {
     if (issues.length === 0) {
       return res.json({ message: 'No grammar or typo issues detected.' });
     }
-    res.json({ issues });
+    res.json({ url, issues });
 
   } catch (err) {
     console.error(err);
