@@ -43,7 +43,19 @@
             <tbody>
               <% results.accessibility.violations.forEach(function(v) { %>
                 <tr>
-                  <td><%= v.id %></td>
+                  <td>
+                    <%= v.id %>
+                    <% if (v.nodes && v.nodes.length > 0) { %>
+                      <ul>
+                        <% v.nodes.forEach(function(node) { %>
+                          <li>
+                            <strong>HTML:</strong> <code><%= node.html %></code><br>
+                            <strong>Failure Summary:</strong> <%= node.failureSummary %>
+                          </li>
+                        <% }); %>
+                      </ul>
+                    <% } %>
+                  </td>
                   <td><%= v.description %></td>
                   <td><%= v.impact || 'N/A' %></td>
                   <td><%= v.wcag.join(', ') %></td>
@@ -52,6 +64,19 @@
               <% }); %>
             </tbody>
           </table>
+          <% /* Detailed nodes for each violation, excluding target */ %>
+          <% results.accessibility.violations.forEach(function(v) { %>
+            <details>
+              <summary>Details for Violation <%= v.id %></summary>
+              <% v.nodes.forEach(function(node, idx) { %>
+                <div style="margin-left:20px;margin-top:10px;">
+                  <p><strong>Node <%= idx + 1 %>:</strong></p>
+                  <p><strong>HTML:</strong> <code><%= node.html %></code></p>
+                  <p><strong>Failure Summary:</strong> <%= node.failureSummary %></p>
+                </div>
+              <% }); %> 
+            </details>
+          <% }); %> 
         <% } else { %>
           <p>No accessibility violations detected.</p>
         <% } %>
@@ -60,7 +85,7 @@
         <% if (results.accessibility.passes.length > 0) { %>
           <ul>
             <% results.accessibility.passes.forEach(function(p) { %>
-              <li><%= p.description %> (WCAG: <%= p.wcag.join(', ') %>)</li>
+              <li><strong><%= p.id %>:</strong> <%= p.description %></li>
             <% }); %>
           </ul>
         <% } else { %>

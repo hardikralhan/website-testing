@@ -61,14 +61,14 @@ router.post('/accessibility-report', async (req, res) => {
         const passes = results.passes.map(p => ({
             id: p.id,
             description: p.description,
-            impact: p.impact,
-            wcag: p.tags
-                .filter(tag => tag.startsWith('wcag'))
-                .map(tag => getWcagName(tag)), 
-            helpUrl: p.helpUrl, 
-            nodes: p.nodes.map(node => ({
-                target: node.target
-            }))
+            // impact: p.impact,
+            // wcag: p.tags
+            //     .filter(tag => tag.startsWith('wcag'))
+            //     .map(tag => getWcagName(tag)), 
+            // helpUrl: p.helpUrl, 
+            // nodes: p.nodes.map(node => ({
+            //     target: node.target
+            // }))
         }));
 
         // Send the enhanced report as JSON
