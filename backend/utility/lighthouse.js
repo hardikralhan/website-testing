@@ -6,16 +6,15 @@ async function runLighthouse(url, options = {}) {
   let browser;
   try {
     console.info(`⏳ Starting Lighthouse run for ${url}`);
-    // Dynamic import of Lighthouse default export
+    // Dynamically import Lighthouse
     const { default: lighthouse } = await import('lighthouse');
 
-    // Launch headless Chrome
+    // Launch Chrome
     browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox','--disable-setuid-sandbox']
     });
-    const wsEndpoint = browser.wsEndpoint();
-    const port = new URL(wsEndpoint).port;
+    const port = new URL(browser.wsEndpoint()).port;
 
     // Lighthouse options
     const lhOptions = {
@@ -46,49 +45,41 @@ async function runLighthouse(url, options = {}) {
       snippet: i.node?.snippet || 'N/A'
     }));
 
-    // Network requests: raw + summary
+    // RAW network requests
     const networkItems = audits['network-requests']?.details?.items || [];
-    const summaryItems = audits['resource-summary']?.details?.items || [];
 
-    // Group raw requests by type
+    // Group them by resourceType
     const requestsByType = networkItems.reduce((acc, req) => {
       const type = req.resourceType || 'other';
-      acc[type] = acc[type] || [];
+      if (!acc[type]) acc[type] = [];
       acc[type].push(req);
       return acc;
     }, {});
 
-    // Build enriched httpRequests object
-    const httpRequests = { totalCount: null, details: [] };
-    for (const item of summaryItems) {
-      const { resourceType: rawType, requestCount, transferSize } = item;
-    
-      // Handle the overall total count
-      if (rawType === 'total') {
-        httpRequests.totalCount = requestCount;
-        continue;
-      }
-    
-      // Capitalize for display
-      const type = rawType.charAt(0).toUpperCase() + rawType.slice(1);
-    
-      // Convert bytes → KB and append “ KB”
-      const transferSizeKB = (transferSize / 1024).toFixed(2) + ' KB';
-    
-      // Grab up to 5 sample URLs, converting each transferSize
-      const samples = (requestsByType[type] || [])
-        .map(r => ({
+    // Build httpRequests from grouped data
+    const httpRequests = {
+      totalCount: networkItems.length,
+      details: Object.entries(requestsByType).map(([rawType, items]) => {
+        // Capitalize first letter
+        const type = rawType.charAt(0).toUpperCase() + rawType.slice(1);
+
+        // Count is simply the array length
+        const count = items.length;
+
+        // Sum of transfer sizes (in KB, two decimals)
+        const transferSizeKB = (
+          items.reduce((sum, r) => sum + (r.transferSize || 0), 0) / 1024
+        ).toFixed(2) + ' KB';
+
+        // Up to 5 sample URLs
+        const samples = items.map(r => ({
           url: r.url,
           sizeKB: (r.transferSize / 1024).toFixed(2) + ' KB'
         }));
-    
-      httpRequests.details.push({
-        type,
-        count: samples.size(),
-        transferSizeKB,    // e.g. "345.67 KB"
-        samples            // each { url, sizeKB: "45.23 KB" }
-      });
-    }
+
+        return { type, count, transferSizeKB, samples };
+      })
+    };
 
     // Render-blocking resources
     const renderBlocking = (audits['render-blocking-resources']?.details?.items || [])
