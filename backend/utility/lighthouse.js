@@ -61,21 +61,33 @@ async function runLighthouse(url, options = {}) {
     // Build enriched httpRequests object
     const httpRequests = { totalCount: null, details: [] };
     for (const item of summaryItems) {
-      let { resourceType: type, requestCount, transferSize } = item;
-      if (type === 'total') {
+      const { resourceType: rawType, requestCount, transferSize } = item;
+    
+      // Handle the overall total count
+      if (rawType === 'total') {
         httpRequests.totalCount = requestCount;
         continue;
       }
-      const rawType = item.resourceType;       // e.g. "script"
-      type = rawType.charAt(0).toUpperCase() + rawType.slice(1);  // "Script"
-
+    
+      // Capitalize for display
+      const type = rawType.charAt(0).toUpperCase() + rawType.slice(1);
+    
+      // Convert bytes → KB and append “ KB”
+      const transferSizeKB = (transferSize / 1024).toFixed(2) + ' KB';
+    
+      // Grab up to 5 sample URLs, converting each transferSize
       const samples = (requestsByType[type] || [])
-        .slice(0, 5)
         .map(r => ({
           url: r.url,
-          size: r.transferSize
+          sizeKB: (r.transferSize / 1024).toFixed(2) + ' KB'
         }));
-      httpRequests.details.push({ type, count: requestCount, transferSize, samples });
+    
+      httpRequests.details.push({
+        type,
+        count: samples.size(),
+        transferSizeKB,    // e.g. "345.67 KB"
+        samples            // each { url, sizeKB: "45.23 KB" }
+      });
     }
 
     // Render-blocking resources
