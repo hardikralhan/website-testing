@@ -18,6 +18,7 @@ router.post('/pdf-report', async (req, res) => {
   }
 
   try {
+    // const baseUrl = `https://dev-access-poc.digitalavenues.net`;
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     const endpoints = [
       { name: 'accessibility', path: '/api/accessibility-report' },
@@ -28,21 +29,20 @@ router.post('/pdf-report', async (req, res) => {
       { name: 'mobile',        path: '/api/mobile/generate-report' }
     ];
 
-    // 1. Fetch all endpoints in parallel
-    const responses = await Promise.all(
-      endpoints.map(ep =>
-        axios.post(baseUrl + ep.path, { url }).then(r => ({ name: ep.name, data: r.data }))
-      )
-    );
-    const results = responses.reduce((acc, { name, data }) => {
-      acc[name] = data;
-      return acc;
-    }, {});
+    // SEQUENTIAL FETCH to reduce spikes
+    const results = {};
+    for (const ep of endpoints) {
+      try {
+        const { data } = await axios.post(baseUrl + ep.path, { url });
+        results[ep.name] = data;
+      } catch (err) {
+        console.error(`Error fetching ${ep.name}`, err);
+        results[ep.name] = { error: 'Failed to fetch' };
+      }
+    }
 
-    // 2. Render EJS → HTML
+    // Render HTML → PDF → send as before
     const htmlContent = await generateHtml(results, url);
-
-    // 3. Launch Puppeteer, generate PDF buffer
     const browser = await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
@@ -54,15 +54,14 @@ router.post('/pdf-report', async (req, res) => {
       margin: { top: '20mm', bottom: '20mm', left: '15mm', right: '15mm' }
     });
     await browser.close();
+    console.log('PDF generated successfully');
 
-    // 4. Send as binary blob
     res
       .set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="site-audit-report.pdf"`,
         'Content-Length': pdfBuffer.length
       })
-      .status(200)
       .send(pdfBuffer);
 
   } catch (err) {
@@ -70,5 +69,6 @@ router.post('/pdf-report', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate PDF report' });
   }
 });
+
 
 module.exports = router;
