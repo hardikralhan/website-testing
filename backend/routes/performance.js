@@ -27,6 +27,7 @@ router.post('/performance-report', async (req, res) => {
 
         // Run Lighthouse analysis
         const perf = await runLighthouse(url, options);
+        const totalItem = perf.issues.httpRequests.find(item => item.resourceType === 'total');
 
         // Format the report
         const report = {
@@ -48,14 +49,14 @@ router.post('/performance-report', async (req, res) => {
                 recommendation: 'Add width and height attributes to prevent layout shifts.'
             })) || [],
             httpRequests: {
-                count: perf.issues.httpRequests.reduce((acc, item) => acc + item.requestCount, 0),
+                count: totalItem ? totalItem.requestCount : null,
                 details: perf.issues.httpRequests.map(item => ({
                     type: item.resourceType,
                     count: item.requestCount,
                 })),
                 threshold: device === 'mobile' ? 30 : 50,
-                excessive: perf.issues.httpRequests.reduce((acc, item) => acc + item.requestCount, 0) > (device === 'mobile' ? 30 : 50),
-                description: `The page makes ${perf.issues.httpRequests.reduce((acc, item) => acc + item.requestCount, 0)} HTTP requests, which is ${perf.issues.httpRequests.reduce((acc, item) => acc + item.requestCount, 0) > (device === 'mobile' ? 30 : 50) ? 'excessive' : 'within limits'} for ${device}. Excessive requests can slow down page load times.`
+                excessive: totalItem.requestCount > (device === 'mobile' ? 30 : 50),
+                description: `The page makes ${totalItem.requestCount} HTTP requests, which is ${(totalItem.requestCount) > (device === 'mobile' ? 30 : 50) ? 'excessive' : 'within limits'} for ${device}. Excessive requests can slow down page load times.`
             },
             renderBlocking: {
                 count: perf.issues.renderBlocking.length,
