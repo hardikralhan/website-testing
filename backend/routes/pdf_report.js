@@ -4,6 +4,7 @@ const axios = require('axios');
 const puppeteer = require('puppeteer');
 const ejs = require('ejs');
 const path = require('path');
+const { getAllLinks } = require('../utility/allLinks');
 
 // Utility function to render HTML from EJS template for PDF
 async function generateHtml(results, url) {
@@ -18,6 +19,7 @@ router.post('/pdf-report', async (req, res) => {
   }
 
   try {
+    const allLinks = await getAllLinks(url)
     // const baseUrl = `https://dev-access-poc.digitalavenues.net`;
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     const endpoints = [
