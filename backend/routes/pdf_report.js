@@ -1,63 +1,100 @@
-const express = require('express');
-const router = express.Router();
-const axios = require('axios');
+// routes/pdf-report.js
+// --------------------
+const express   = require('express');
+const router    = express.Router();
+const axios     = require('axios');
 const puppeteer = require('puppeteer');
-const ejs = require('ejs');
-const path = require('path');
+const ejs       = require('ejs');
+const path      = require('path');
 const { getAllLinks } = require('../utility/allLinks');
 
-// Utility function to render HTML from EJS template for PDF
-async function generateHtml(results, url) {
+// Utility to render HTML from EJS
+async function generateHtml(allResults, startUrl) {
   const templatePath = path.resolve(__dirname, '../views/pdf_report.ejs');
-  return await ejs.renderFile(templatePath, { results, url }, { async: true });
+  return await ejs.renderFile(templatePath, { allResults, startUrl }, { async: true });
 }
 
 router.post('/pdf-report', async (req, res) => {
-  const { url } = req.body;
-  if (!url || typeof url !== 'string') {
-    return res.status(400).json({ error: 'Valid URL is required' });
+  const { url: startUrl } = req.body;
+  if (!startUrl || typeof startUrl !== 'string') {
+    return res.status(400).json({ error: 'Valid start URL is required' });
   }
 
-  try {
-    const allLinks = await getAllLinks(url)
-    // const baseUrl = `https://dev-access-poc.digitalavenues.net`;
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const endpoints = [
-      { name: 'accessibility', path: '/api/accessibility-report' },
-      { name: 'grammar',       path: '/api/grammar-check'       },
-      { name: 'seo',           path: '/api/seo/seo-report'      },
-      { name: 'performance',   path: '/api/performance/performance-report' },
-      { name: 'ui',            path: '/api/ui/ui-report'        },
-      { name: 'mobile',        path: '/api/mobile/generate-report' }
-    ];
+  console.info(`➡️  Generating PDF report for site crawl starting at ${startUrl}`);
 
-    // SEQUENTIAL FETCH to reduce spikes
-    const results = {};
+  // 1️⃣ Crawl site for links
+  let allLinks;
+  try {
+    // allLinks = await getAllLinks(startUrl);
+    allLinks = ['https://www.digitalavenues.com/', 'https://www.digitalavenues.com/our-work']
+    console.info(`ℹ️  Found ${allLinks.length} unique links to report on`);
+  } catch (crawlErr) {
+    console.error('❌ Site crawl failed:', crawlErr);
+    return res.status(500).json({ error: 'Failed to crawl site for links' });
+  }
+
+  // 2️⃣ Define your API endpoints
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const endpoints = [
+    { name: 'accessibility', path: '/api/accessibility-report' },
+    { name: 'grammar',       path: '/api/grammar-check'       },
+    { name: 'seo',           path: '/api/seo/seo-report'      },
+    { name: 'performance',   path: '/api/performance/performance-report' },
+    { name: 'ui',            path: '/api/ui/ui-report'        },
+    { name: 'mobile',        path: '/api/mobile/generate-report' }
+  ];
+
+  // 3️⃣ Fetch results for each link
+  const allResults = {};  
+  for (const link of allLinks) {
+    console.info(`   ↪️  Fetching reports for ${link}`);
+    const linkResults = {};
+
     for (const ep of endpoints) {
       try {
-        const { data } = await axios.post(baseUrl + ep.path, { url });
-        results[ep.name] = data;
+        const { data } = await axios.post(
+          baseUrl + ep.path,
+          { url: link },
+          { timeout: 2 * 60 * 1000 }  // 2m timeout per API
+        );
+        linkResults[ep.name] = data;
+        console.debug(`      • ${ep.name} OK`);
       } catch (err) {
-        console.error(`Error fetching ${ep.name}`, err);
-        results[ep.name] = { error: 'Failed to fetch' };
+        console.error(`      • ${ep.name} FAILED for ${link}:`, err.message);
+        linkResults[ep.name] = { error: `Failed to fetch ${ep.name}` };
       }
     }
 
-    // Render HTML → PDF → send as before
-    const htmlContent = await generateHtml(results, url);
-    const browser = await puppeteer.launch({
+    allResults[link] = linkResults;
+  }
+
+  // 4️⃣ Render the combined HTML
+  let htmlContent;
+  try {
+    htmlContent = await generateHtml(allResults, startUrl);
+    console.info('ℹ️  HTML content rendered, launching Puppeteer for PDF');
+  } catch (renderErr) {
+    console.error('❌ EJS render failed:', renderErr);
+    return res.status(500).json({ error: 'Failed to render PDF template' });
+  }
+
+  // 5️⃣ Generate PDF
+  let browser;
+  try {
+    browser = await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     const page = await browser.newPage();
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: { top: '20mm', bottom: '20mm', left: '15mm', right: '15mm' }
     });
-    await browser.close();
-    console.log('PDF generated successfully');
+    console.info('✅ PDF buffer generated');
 
+    // 6️⃣ Send as binary
     res
       .set({
         'Content-Type': 'application/pdf',
@@ -66,11 +103,15 @@ router.post('/pdf-report', async (req, res) => {
       })
       .send(pdfBuffer);
 
-  } catch (err) {
-    console.error('Error generating PDF report:', err);
+  } catch (pdfErr) {
+    console.error('❌ PDF generation failed:', pdfErr);
     res.status(500).json({ error: 'Failed to generate PDF report' });
+  } finally {
+    if (browser) {
+      await browser.close();
+      console.info('🔒 Puppeteer browser closed');
+    }
   }
 });
-
 
 module.exports = router;
