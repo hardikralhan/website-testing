@@ -7,6 +7,23 @@ const puppeteer = require('puppeteer');
 const ejs       = require('ejs');
 const path      = require('path');
 const { getAllLinks } = require('../utility/allLinks');
+const nodemailer = require('nodemailer');
+const validator = require('validator');
+require('dotenv').config();  
+
+// Configure SMTP transporter; ensure the following env vars are set:
+// SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, optionally SMTP_SECURE ('true' or 'false'), SMTP_FROM
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT, 10),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
+// console.log(transporter);
+
 
 // Utility to render HTML from EJS
 async function generateHtml(allResults, startUrl) {
@@ -15,9 +32,12 @@ async function generateHtml(allResults, startUrl) {
 }
 
 router.post('/pdf-report', async (req, res) => {
-  const { url: startUrl } = req.body;
+  const { url: startUrl, email } = req.body;
   if (!startUrl || typeof startUrl !== 'string') {
     return res.status(400).json({ error: 'Valid start URL is required' });
+  }
+  if (typeof email !== 'string' || !validator.isEmail(email)) {
+    return res.status(400).json({ error: 'Valid email address is required' });
   }
 
   console.info(`➡️  Generating PDF report for site crawl starting at ${startUrl}`);
@@ -26,7 +46,8 @@ router.post('/pdf-report', async (req, res) => {
   let allLinks;
   try {
     // allLinks = await getAllLinks(startUrl);
-    allLinks = ['https://www.digitalavenues.com/', 'https://www.digitalavenues.com/our-work']
+    // allLinks = ['https://www.digitalavenues.com/', 'https://www.digitalavenues.com/our-work']
+    allLinks = ['https://www.digitalavenues.com/']
     console.info(`ℹ️  Found ${allLinks.length} unique links to report on`);
   } catch (crawlErr) {
     console.error('❌ Site crawl failed:', crawlErr);
@@ -94,7 +115,51 @@ router.post('/pdf-report', async (req, res) => {
     });
     console.info('✅ PDF buffer generated');
 
+    // 6️⃣ Send via email if email provided, otherwise send as binary
+    if (email) {
+      if (typeof email !== 'string' || !validator.isEmail(email)) {
+        return res.status(400).json({ error: 'Valid email address is required' });
+      }
+      try {
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || process.env.SMTP_USER,
+          to: email,
+          subject: 'Site Audit PDF Report',
+          text: 'Please find the site audit report attached.',
+          attachments: [
+            { filename: 'site-audit-report.pdf', content: pdfBuffer }
+          ]
+        });
+        console.info('📧 Email sent to', email);
+        return res.json({ message: `PDF report emailed to ${email}` });
+      } catch (emailErr) {
+        console.error('❌ Email send failed:', emailErr);
+        return res.status(500).json({ error: 'Failed to send email' });
+      }
+    }
     // 6️⃣ Send as binary
+    // Send via email if requested
+    if (email) {
+      if (typeof email !== 'string' || !validator.isEmail(email)) {
+        return res.status(400).json({ error: 'Valid email address is required' });
+      }
+      try {
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || process.env.SMTP_USER,
+          to: email,
+          subject: 'Site Audit PDF Report',
+          text: 'Please find the site audit report attached.',
+          attachments: [{ filename: 'site-audit-report.pdf', content: pdfBuffer }]
+        });
+        console.info('📧 Email sent to', email);
+        return res.json({ message: `PDF report emailed to ${email}` });
+      } catch (emailErr) {
+        console.error('❌ Email send failed:', emailErr);
+        return res.status(500).json({ error: 'Failed to send email' });
+      }
+    }
+
+    // Send PDF inline if no email requested
     res
       .set({
         'Content-Type': 'application/pdf',

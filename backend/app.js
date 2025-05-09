@@ -7,6 +7,7 @@ const performanceTestRoutes = require('./routes/performance'); // Adjust path as
 const mobileResponsiveRoutes = require('./routes/mobile_responsive'); // Adjust path as necessary
 const grammaticalTestRoutes = require('./routes/grammatical_test'); // Adjust path as necessary
 const pdfReportRoutes = require('./routes/pdf_report');
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
