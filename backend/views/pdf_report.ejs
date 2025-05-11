@@ -1,196 +1,540 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Site-wide Audit Report</title>
   <style>
-    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 40px; }
-    .container { max-width: 800px; margin: auto; }
-    h1 { font-size: 24px; margin-bottom: 10px; text-align: center; }
-    h2 { font-size: 20px; margin-top: 30px; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 14px; }
-    ul { list-style-type: disc; margin-left: 20px; }
-    li { margin-bottom: 5px; font-size: 14px; }
-    .score { font-weight: bold; color: #007bff; }
-    .error { color: #c00; }
-    .section { page-break-after: always; }
-    .section:last-child { page-break-after: auto; }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      margin: 40px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-top: 30px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    ul {
+      list-style-type: disc;
+      margin-left: 20px;
+    }
+
+    li {
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+
+    .score {
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    .error {
+      color: #c00;
+    }
+
+    .section {
+      page-break-after: always;
+    }
+
+    .section:last-child {
+      page-break-after: auto;
+    }
   </style>
 </head>
+
 <body>
   <div class="container">
     <% for (const link of Object.keys(allResults)) { 
          const results = allResults[link]; %>
 
-      <div class="section">
-        <h1>Audit Report for <%= link %></h1>
+    <div class="section">
+      <h1>Audit Report for <%= link %></h1>
 
-        <!-- Accessibility -->
-        <h2>Accessibility</h2>
-        <% if (results.accessibility.error) { %>
-          <p class="error">Error: <%= results.accessibility.error %></p>
-        <% } else if (results.accessibility && results.accessibility.violations) { %>
-          <% if (results.accessibility.violations.length) { %>
-            <h3>Violations</h3>
-            <table>
-              <thead>
-                <tr><th>ID</th><th>Description</th><th>Impact</th><th>WCAG</th><th>Remediation</th></tr>
-              </thead>
-              <tbody>
-                <% results.accessibility.violations.forEach(v => { %>
-                  <tr>
-                    <td><%= v.id %></td>
-                    <td><%= v.description %></td>
-                    <td><%= v.impact || 'N/A' %></td>
-                    <td><%= v.wcag.join(', ') %></td>
-                    <td><%= v.remediation || 'Refer to help URL' %></td>
-                  </tr>
+      <!-- Accessibility -->
+      <h2>Accessibility</h2>
+      <% if (results.accessibility.error) { %>
+      <p class="error">Error: <%= results.accessibility.error %></p>
+
+      <% } else if (results.accessibility && results.accessibility.violations) { %>
+
+      <% if (results.accessibility.violations.length) { %>
+      <h3>Violations</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Description</th>
+            <th>Impact</th>
+            <th>WCAG</th>
+            <th>Remediation</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% results.accessibility.violations.forEach(v => { %>
+          <tr>
+            <td><%= v.id %></td>
+            <td><%= v.description %></td>
+            <td><%= v.impact || 'N/A' %></td>
+            <td><%= v.wcag.join(', ') %></td>
+            <td><%= v.remediation || 'Refer to help URL' %></td>
+            <td>
+              <ul>
+                <% v.nodes.forEach(node => { %>
+                <li>
+                  <strong>Target:</strong> <code><%= node.target.join(', ') %></code><br>
+                  <strong>HTML:</strong>
+                  <pre><%= node.html %></pre>
+                  <strong>Failure:</strong> <%= node.failureSummary.replace(/\n/g, '<br>') %>
+                </li>
                 <% }) %>
-              </tbody>
-            </table>
-          <% } else { %>
-            <p>No accessibility violations detected.</p>
+              </ul>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <p>No accessibility violations detected.</p>
+      <% } %>
+
+      <% if (results.accessibility.passes && results.accessibility.passes.length) { %>
+      <h3>Passes</h3>
+      <ul>
+        <% results.accessibility.passes.forEach(p => { %>
+        <li>
+          <strong><%= p.id %>:</strong> <%= p.description %>
+        </li>
+        <% }) %>
+      </ul>
+      <% } %>
+
+      <% } else { %>
+      <p class="error">Accessibility data unavailable.</p>
+      <% } %>
+
+
+      <!-- Grammar -->
+      <h2>Grammar</h2>
+      <% if (results.grammar.error) { %>
+      <p class="error">Error: <%= results.grammar.error %></p>
+      <% } else if (results.grammar.issues && results.grammar.issues.length) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Context</th>
+            <th>Suggestion</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% results.grammar.issues.forEach(issue => { %>
+          <tr>
+            <td><%= issue.context %></td>
+            <td><%= issue.suggestion %></td>
+            <td><%= issue.message %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <p>No grammar issues detected.</p>
+      <% } %>
+
+      <!-- SEO -->
+      <h2>SEO</h2>
+      <% if (results.seo.error) { %>
+      <p class="error">Error: <%= results.seo.error %></p>
+
+      <% } else if (results.seo) { %>
+
+      <!-- Meta -->
+      <h3>Meta Information</h3>
+      <ul>
+        <li><strong>Title:</strong> <%= results.seo.meta.title %></li>
+        <li><strong>Description:</strong> <%= results.seo.meta.description %></li>
+      </ul>
+
+      <!-- Headings -->
+      <h3>Headings</h3>
+      <% const hd = results.seo.headings; %>
+      <ul>
+        <% ['h1','h2','h3','h4','h5','h6'].forEach(tag => { %>
+        <li>
+          <strong><%= tag.toUpperCase() %>:</strong> <%= hd[tag].count %>
+          <% if (hd[tag].details.length) { %>
+          <ul>
+            <% hd[tag].details.forEach(item => { %>
+            <li>Position <%= item.position %>: <%= item.text %></li>
+            <% }) %>
+          </ul>
           <% } %>
-        <% } else { %>
-          <p class="error">Accessibility data unavailable.</p>
-        <% } %>
+        </li>
+        <% }) %>
+      </ul>
+      <% if (hd.structureIssues && hd.structureIssues.length) { %>
+      <h4>Heading Structure Issues</h4>
+      <ul>
+        <% hd.structureIssues.forEach(issue => { %>
+        <li><%= issue %></li>
+        <% }) %>
+      </ul>
+      <% } %>
 
-        <!-- Grammar -->
-        <h2>Grammar</h2>
-        <% if (results.grammar.error) { %>
-          <p class="error">Error: <%= results.grammar.error %></p>
-        <% } else if (results.grammar.issues && results.grammar.issues.length) { %>
-          <table>
-            <thead><tr><th>Context</th><th>Suggestion</th><th>Message</th></tr></thead>
-            <tbody>
-              <% results.grammar.issues.forEach(issue => { %>
-                <tr>
-                  <td><%= issue.context %></td>
-                  <td><%= issue.suggestion %></td>
-                  <td><%= issue.message %></td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
-        <% } else { %>
-          <p>No grammar issues detected.</p>
-        <% } %>
+      <!-- Images -->
+      <h3>Images</h3>
+      <ul>
+        <li><strong>Total Images:</strong> <%= results.seo.images.total %></li>
+        <li><strong>Missing Alt Text:</strong> <%= results.seo.images.missingAlt.length %>
+          <% if (results.seo.images.missingAlt.length) { %>
+          <ul>
+            <% results.seo.images.missingAlt.forEach(src => { %>
+            <li><%= src %></li>
+            <% }) %>
+          </ul>
+          <% } %>
+        </li>
+        <li><strong>Empty Alt Text:</strong> <%= results.seo.images.emptyAlt.length %>
+          <% if (results.seo.images.emptyAlt.length) { %>
+          <ul>
+            <% results.seo.images.emptyAlt.forEach(src => { %>
+            <li><%= src %></li>
+            <% }) %>
+          </ul>
+          <% } %>
+        </li>
+      </ul>
 
-        <!-- SEO -->
-        <h2>SEO</h2>
-        <% if (results.seo.error) { %>
-          <p class="error">Error: <%= results.seo.error %></p>
-        <% } else if (results.seo) { %>
-          <h3>Meta</h3>
-          <ul>
-            <li><strong>Title:</strong> <%= results.seo.meta.title %></li>
-            <li><strong>Description:</strong> <%= results.seo.meta.description %></li>
-          </ul>
-          <h3>Headings</h3>
-          <ul>
-            <% for (const k of Object.keys(results.seo.headings).filter(k => k!=='structureIssues')) { %>
-              <li><%= k.toUpperCase() %>: <%= results.seo.headings[k].count %></li>
-            <% } %>
-          </ul>
-          <h3>Images</h3>
-          <ul>
-            <li>Total: <%= results.seo.images.total %></li>
-            <li>Missing Alt: <%= results.seo.images.missingAlt.length %></li>
-          </ul>
-          <h3>Links</h3>
-          <ul>
-            <li>Total: <%= results.seo.links.total %></li>
-            <li>Broken: <%= results.seo.links.broken.length %></li>
-          </ul>
-        <% } else { %>
-          <p class="error">SEO data unavailable.</p>
-        <% } %>
+      <!-- Canonical -->
+      <h3>Canonical Tag</h3>
+      <p><%= results.seo.canonical.href %></p>
 
-        <!-- Performance -->
-        <h2>Performance</h2>
-        <% if (results.performance.error) { %>
-          <p class="error">Error: <%= results.performance.error %></p>
-        <% } else if (results.performance) { %>
-          <p class="score">
-            Score: <%= results.performance.performanceScore.score %>
-            (<%= results.performance.performanceScore.category %>)
-          </p>
-          <h3>Load Times</h3>
-          <ul>
-            <li>Interactive: <%= results.performance.pageLoadTime.interactive %></li>
-            <li>FCP: <%= results.performance.pageLoadTime.firstContentfulPaint %></li>
-          </ul>
-          <h3>HTTP Requests</h3>
-          <p><%= results.performance.httpRequests.description %></p>
-          <h3>Render-Blocking</h3>
-          <p><%= results.performance.renderBlocking.description %></p>
-          <h3>Caching</h3>
-          <p><%= results.performance.caching.description %></p>
-        <% } else { %>
-          <p class="error">Performance data unavailable.</p>
-        <% } %>
+      <!-- Structured Data -->
+      <h3>Structured Data</h3>
+      <p><strong>Present:</strong> <%= results.seo.structuredData.present ? 'Yes' : 'No' %></p>
+      <% if (results.seo.structuredData.details.length) { %>
+      <h4>Details</h4>
+      <ul>
+        <% results.seo.structuredData.details.forEach(detail => { %>
+        <li><%= detail %></li>
+        <% }) %>
+      </ul>
+      <% } %>
 
-        <!-- UI -->
-        <h2>UI</h2>
-        <% if (results.ui.error) { %>
-          <p class="error">Error: <%= results.ui.error %></p>
-        <% } else if (results.ui.report) { %>
-          <% ['inconsistentFonts','inconsistentColors','inconsistentButtonStyles','poorWhitespace']
-              .forEach(section => { 
-                const items = results.ui.report[section] || [];
-                const title = { 
-                  inconsistentFonts: 'Fonts',
-                  inconsistentColors: 'Colors',
-                  inconsistentButtonStyles: 'Button Styles',
-                  poorWhitespace: 'Whitespace'
-                }[section];
-          %>
-            <h3><%= title %></h3>
-            <% if (items.length) { %>
+      <!-- Links -->
+      <h3>Links</h3>
+      <ul>
+        <li><strong>Total Links:</strong> <%= results.seo.links.total %></li>
+        <li><strong>Broken Links:</strong> <%= results.seo.links.broken.length %>
+          <% if (results.seo.links.broken.length) { %>
+          <ul>
+            <% results.seo.links.broken.forEach(link => { %>
+            <li><%= link %></li>
+            <% }) %>
+          </ul>
+          <% } %>
+        </li>
+      </ul>
+
+      <% } else { %>
+      <p class="error">SEO data unavailable.</p>
+      <% } %>
+
+
+      <!-- Performance -->
+      <h2>Performance</h2>
+      <% if (results.performance.error) { %>
+      <p class="error">Error: <%= results.performance.error %></p>
+      <% } else if (results.performance) { %>
+      <!-- Score and description -->
+      <p class="score">
+        Score: <%= results.performance.performanceScore.score %>
+        (<%= results.performance.performanceScore.category %>)
+      </p>
+      <p><%= results.performance.performanceScore.description %></p>
+
+      <!-- Page load times -->
+      <h3>Load Times</h3>
+      <ul>
+        <li>Time to Interactive: <%= results.performance.pageLoadTime.interactive %></li>
+        <li>First Contentful Paint: <%= results.performance.pageLoadTime.firstContentfulPaint %></li>
+      </ul>
+      <p><%= results.performance.pageLoadTime.description %></p>
+
+      <!-- Unsized Images -->
+      <h3>Unsized Images</h3>
+      <% if (results.performance.unsizedImages && results.performance.unsizedImages.length) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Image URL</th>
+            <th>Snippet</th>
+            <th>Recommendation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% results.performance.unsizedImages.forEach(img => { %>
+          <tr>
+            <td><a href="<%= img.url %>"><%= img.url %></a></td>
+            <td>
+              <pre><%= img.snippet %></pre>
+            </td>
+            <td><%= img.recommendation %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <p>No unsized images detected.</p>
+      <% } %>
+
+      <!-- HTTP Requests -->
+      <h3>HTTP Requests</h3>
+      <p><%= results.performance.httpRequests.description %></p>
+      <ul>
+        <li><strong>Total Requests:</strong> <%= results.performance.httpRequests.count %></li>
+        <li><strong>Threshold:</strong> <%= results.performance.httpRequests.threshold %></li>
+        <li><strong>Excessive:</strong> <%= results.performance.httpRequests.excessive ? 'Yes' : 'No' %></li>
+      </ul>
+      <% if (results.performance.httpRequests.details && results.performance.httpRequests.details.length) { %>
+      <h4>Request Details by Resource Type</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Count</th>
+            <th>Sample URLs (Transfer Size kb)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% results.performance.httpRequests.details.forEach(d => { %>
+          <tr>
+            <td><%= d.type %></td>
+            <td><%= d.count %></td>
+            <td>
               <ul>
-                <% items.forEach(i => { %>
-                  <li><%= i.text || i.element || i.button || i.section %> — <%= i.description %></li>
+                <% d.samples.forEach(s => { %>
+                <li><a href="<%= s.url %>"><%= s.url %></a> (<%= s.sizeKB %>)</li>
                 <% }) %>
               </ul>
-            <% } else { %>
-              <p>No <%= title.toLowerCase() %> issues.</p>
-            <% } %>
+            </td>
+          </tr>
           <% }) %>
-        <% } else { %>
-          <p class="error">UI data unavailable.</p>
-        <% } %>
+        </tbody>
+      </table>
+      <% } %>
 
-        <!-- Mobile -->
-        <h2>Mobile</h2>
-        <% if (results.mobile.error) { %>
-          <p class="error">Error: <%= results.mobile.error %></p>
-        <% } else if (results.mobile) { %>
-          <% [
-            ['responsivenessIssues','Responsiveness'],
-            ['overlappingElements','Overlaps'],
-            ['cutOffContent','Cut-Off Content'],
-            ['tapTargetIssues','Tap Targets']
-          ].forEach(([key,title]) => {
-            const arr = results.mobile[key] || [];
-          %>
-            <h3><%= title %></h3>
-            <% if (arr.length) { %>
-              <ul>
-                <% arr.forEach(issue => { %>
-                  <li><%= issue.description %> (Location: <%= issue.location %>)</li>
-                <% }) %>
-              </ul>
-            <% } else { %>
-              <p>No <%= title.toLowerCase() %> issues.</p>
-            <% } %>
+      <!-- Render Blocking -->
+      <h3>Render-Blocking Resources</h3>
+      <p><%= results.performance.renderBlocking.description %></p>
+      <% if (results.performance.renderBlocking.resources.length) { %>
+      <ul>
+        <% results.performance.renderBlocking.resources.forEach(r => { %>
+        <li><a href="<%= r.url %>"><%= r.url %></a>: <%= r.recommendation %></li>
+        <% }) %>
+      </ul>
+      <% } %>
+
+      <!-- Caching -->
+      <h3>Caching</h3>
+      <p><strong>Status:</strong> <%= results.performance.caching.status %></p>
+      <p><%= results.performance.caching.description %></p>
+
+      <% } else { %>
+      <p class="error">Performance data unavailable.</p>
+      <% } %>
+
+
+      <!-- UI -->
+      <h2>UI</h2>
+      <% if (results.ui.error) { %>
+      <p class="error">Error: <%= results.ui.error %></p>
+
+      <% } else if (results.ui.report) { %>
+
+      <% /* Fonts */ %>
+      <h3>Inconsistent Fonts</h3>
+      <% if (results.ui.report.inconsistentFonts.length) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Text</th>
+            <th>Location</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% results.ui.report.inconsistentFonts.forEach(item => { %>
+          <tr>
+            <td><%= item.text %></td>
+            <td><%= item.location %></td>
+            <td><%= item.description %></td>
+          </tr>
           <% }) %>
-        <% } else { %>
-          <p class="error">Mobile data unavailable.</p>
-        <% } %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <p>No font inconsistencies detected.</p>
+      <% } %>
 
-      </div>
+      <% /* Colors */ %>
+      <h3>Inconsistent Colors</h3>
+      <% if (results.ui.report.inconsistentColors.length) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Element</th>
+            <th>Location</th>
+            <th>Affected Text</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% results.ui.report.inconsistentColors.forEach(item => { %>
+          <tr>
+            <td><%= item.element %></td>
+            <td><%= item.location %></td>
+            <td><%= item.affectedText || '—' %></td>
+            <td><%= item.description %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <p>No color inconsistencies detected.</p>
+      <% } %>
+
+      <% /* Button Styles */ %>
+      <h3>Inconsistent Button Styles</h3>
+      <% if (results.ui.report.inconsistentButtonStyles.length) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Button</th>
+            <th>Location</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% results.ui.report.inconsistentButtonStyles.forEach(item => { %>
+          <tr>
+            <td><%= item.button %></td>
+            <td><%= item.location %></td>
+            <td><%= item.description %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <p>No button style inconsistencies detected.</p>
+      <% } %>
+
+      <% /* Whitespace */ %>
+      <h3>Poor Whitespace</h3>
+      <% if (results.ui.report.poorWhitespace.length) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Section</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% results.ui.report.poorWhitespace.forEach(item => { %>
+          <tr>
+            <td><%= item.section %></td>
+            <td><%= item.description %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <p>No whitespace issues detected.</p>
+      <% } %>
+
+      <% } else { %>
+      <p class="error">UI data unavailable.</p>
+      <% } %>
+
+
+      <!-- Mobile -->
+      <h2>Mobile</h2>
+      <% if (results.mobile.error) { %>
+      <p class="error">Error: <%= results.mobile.error %></p>
+
+      <% } else if (results.mobile) { %>
+
+      <% [
+    ['responsivenessIssues','Responsiveness Issues'],
+    ['overlappingElements','Overlapping Elements'],
+    ['cutOffContent','Cut-Off Content'],
+    ['tapTargetIssues','Tap Target Issues']
+  ].forEach(([key, title]) => {
+    const arr = results.mobile[key] || [];
+  %>
+      <h3><%= title %></h3>
+      <% if (arr.length) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Location</th>
+            <th>Affected Elements</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% arr.forEach(item => { %>
+          <tr>
+            <td><%= item.description %></td>
+            <td><%= item.location %></td>
+            <td><%= item.affectedElements || '—' %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <p>No <%= title.toLowerCase() %> detected.</p>
+      <% } %>
+      <% }) %>
+
+      <% } else { %>
+      <p class="error">Mobile data unavailable.</p>
+      <% } %>
+
+
+    </div>
     <% } %>
   </div>
 </body>
+
 </html>
