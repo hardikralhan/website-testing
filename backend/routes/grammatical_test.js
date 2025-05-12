@@ -14,10 +14,12 @@ router.post('/grammar-check', async (req, res) => {
   console.info(`➡️  Grammar check requested for ${url}`);
 
   try {
+    // 1. scrape only visible text blocks (including div and span)
     const blocks = await extractTextBlocks(url);
     console.info(`   ↪️  Extracted ${blocks.length} text blocks`);
 
-    const issues = [];
+    // 2. grammar‐check each block
+    const rawIssues = [];
     for (const block of blocks) {
       let matches = [];
       try {
@@ -26,30 +28,45 @@ router.post('/grammar-check', async (req, res) => {
         console.error('   ❌ Grammar API error:', e.message);
         continue;
       }
+
       for (const m of matches) {
         const idx = block.indexOf(m.phrase);
         if (idx < 0) continue;
-        const before = block.slice(Math.max(0, idx - 30), idx).trimEnd();
+
+        const before    = block.slice(Math.max(0, idx - 30), idx).trimEnd();
         const errorText = block.slice(idx, idx + m.phrase.length);
-        const after = block
+        const after     = block
           .slice(idx + m.phrase.length, idx + m.phrase.length + 30)
           .trimStart();
 
-        // Use **bold** markers only
+        // Use **bold** markers only (no HTML tags)
         const context = [before, `**${errorText}**`, after]
           .join(' ')
           .replace(/\s+/g, ' ')
           .trim();
 
-        issues.push({ context, suggestion: m.suggestion, message: m.message });
+        rawIssues.push({
+          context,
+          suggestion: m.suggestion,
+          message:    m.message
+        });
       }
     }
 
+    // 3. de-duplicate by context
+    const seen = new Set();
+    const issues = rawIssues.filter(issue => {
+      if (seen.has(issue.context)) return false;
+      seen.add(issue.context);
+      return true;
+    });
+
+    // 4. respond
     if (!issues.length) {
       console.info('✅ No grammar issues detected');
       return res.json({ message: 'No grammar or typo issues detected.' });
     }
-    console.warn(`⚠️  Detected ${issues.length} issues`);
+    console.warn(`⚠️  Detected ${issues.length} unique issues (filtered from ${rawIssues.length})`);
     return res.json({ url, issues });
 
   } catch (err) {
@@ -59,8 +76,9 @@ router.post('/grammar-check', async (req, res) => {
 });
 
 /**
- * Extracts visible text blocks from the page at `url`, splitting
- * each text node and each span so they come back separately.
+ * Scrape the page at `url`, remove non-content elements,
+ * replace <br> with newlines, and return an array of text blocks.
+ * Includes text from div and span tags as separate blocks.
  */
 async function extractTextBlocks(url) {
   let browser;
@@ -72,15 +90,15 @@ async function extractTextBlocks(url) {
     await browser.close();
 
     const $ = cheerio.load(html);
-    // remove non-content
+    // Remove boilerplate
     $('script, style, nav, header, footer, form').remove();
-    // preserve line breaks
+    // Turn <br> into newline
     $('br').replaceWith('\n');
 
     const blocks = [];
-    // for each block-level or span element...
+    // include div, span, p, headings, li
     $('div, span, p, h1, h2, h3, h4, h5, h6, li').each((_, el) => {
-      // inspect its children so spans and text nodes are separate
+      // split into text nodes & spans
       $(el).contents().each((_, node) => {
         let text = '';
         if (node.type === 'text') {
@@ -90,7 +108,7 @@ async function extractTextBlocks(url) {
         } else {
           return;
         }
-        // split on any newline and normalize
+        // split on newline and normalize
         text.split('\n').forEach(line => {
           const t = line
             .replace(/([a-z0-9])([A-Z])/g, '$1 $2') // split camelCase
@@ -109,8 +127,9 @@ async function extractTextBlocks(url) {
   }
 }
 
-/** 
- * Hits LanguageTool and returns an array of { phrase, suggestion, message } 
+/**
+ * Call LanguageTool API to check grammar on a single text block.
+ * Returns an array of match objects: { phrase, suggestion, message }.
  */
 async function checkGrammar(text) {
   const LT_URL = 'https://api.languagetool.org/v2/check';
