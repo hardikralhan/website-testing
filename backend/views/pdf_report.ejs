@@ -5,89 +5,97 @@
   <meta charset="UTF-8">
   <title>Site-wide Audit Report</title>
   <style>
+    /* Page & body setup */
+    @page {
+      margin: 10mm 8mm;
+      @bottom-center {
+        content: "Page " counter(page) " of " counter(pages);
+        font-size: 10px;
+        color: #666;
+      }
+    }
     body {
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      margin: 40px;
-      background-color: #f9f9f9;
-      font-size: 14px;
+      margin: 0;
+      color: #333;
+      line-height: 1.4;
     }
-
     .container {
-      max-width: 800px;
-      margin: auto;
+      padding: 10px 5px;
+      max-width: none;
     }
-
+  
+    /* Headings */
     h1 {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: bold;
       margin-bottom: 20px;
       text-align: center;
-      color: #007bff;
+      color: #0056b3;
     }
-
     h2 {
       font-size: 22px;
       font-weight: bold;
       margin-top: 40px;
       margin-bottom: 20px;
-      color: #007bff;
+      color: #0056b3;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 5px;
     }
-
     h3 {
       font-size: 18px;
       font-weight: bold;
       margin-top: 20px;
       margin-bottom: 10px;
-      color: #007bff;
+      color: #0056b3;
     }
-
+  
+    /* Tables */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      page-break-inside: auto;
+      margin-bottom: 20px;
     }
-
-    th,
-    td {
+    tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+    th, td {
       border: 1px solid #ccc;
-      padding: 10px;
-      text-align: left;
-      font-size: 14px;
+      padding: 8px;
+      font-size: 13px;
+      vertical-align: top;
+      word-wrap: break-word;
     }
-
     th {
-      background-color: #007bff;
-      color: white;
+      background: #0056b3;
+      color: #fff;
+      text-align: left;
     }
-
-    tr:nth-child(even) {
-      background-color: #f2f2f2;
+    tr:nth-child(even) td {
+      background-color: #f9f9f9;
     }
-
-    ul {
-      list-style-type: disc;
-      margin-left: 20px;
+  
+    /* Lists */
+    ul, ol {
+      margin: 10px 0 20px 20px;
     }
-
     li {
       margin-bottom: 5px;
       font-size: 14px;
     }
-
-    .score {
-      font-weight: bold;
-      background-color: #e6f2ff;
-      padding: 5px;
-      border-radius: 3px;
+  
+    /* Links */
+    a {
+      color: #0056b3;
+      text-decoration: none;
     }
-
-    .error {
-      color: #c00;
-      background-color: #ffcccc;
-      padding: 5px;
-      border-radius: 3px;
+    a:hover {
+      text-decoration: underline;
     }
-
+  
+    /* Preformatted blocks */
     pre {
       font-size: 12px;
       background-color: #f0f0f0;
@@ -97,50 +105,40 @@
       word-wrap: break-word;
       max-width: 100%;
     }
-
-    a {
-      color: #007bff;
-      text-decoration: underline;
+  
+    /* Highlight boxes */
+    .score {
+      font-weight: bold;
+      background-color: #e6f2ff;
+      padding: 5px;
+      border-radius: 3px;
     }
-
+    .error {
+      color: #b30000;
+      background-color: #ffcccc;
+      padding: 5px;
+      border-radius: 3px;
+    }
+  
+    /* Section breaks */
     .section {
       page-break-after: always;
     }
-
     .section:last-child {
       page-break-after: auto;
     }
-
-    /* Color-coding for performance scores */
-    .score.good {
-      color: green;
-    }
-
-    .score.needs-improvement {
-      color: orange;
-    }
-
-    .score.poor {
-      color: red;
-    }
-
-    /* Color-coding for accessibility impacts */
-    .impact-minor {
-      background-color: #e6ffe6;
-    }
-
-    .impact-moderate {
-      background-color: #fff5e6;
-    }
-
-    .impact-serious {
-      background-color: #ffe6e6;
-    }
-
-    .impact-critical {
-      background-color: #ffcccc;
-    }
+  
+    /* Semantic coloring */
+    .score.good { color: green; }
+    .score.needs-improvement { color: orange; }
+    .score.poor { color: red; }
+  
+    .impact-minor    { background-color: #e6ffe6; }
+    .impact-moderate { background-color: #fff5e6; }
+    .impact-serious  { background-color: #ffe6e6; }
+    .impact-critical { background-color: #ffcccc; }
   </style>
+  
 </head>
 
 <body>
