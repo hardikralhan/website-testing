@@ -15,8 +15,8 @@
       }
     }
     body {
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       margin: 0;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       color: #333;
       line-height: 1.4;
     }
@@ -26,118 +26,80 @@
     }
   
     /* Headings */
-    h1 {
-      font-size: 28px;
-      font-weight: bold;
-      margin-bottom: 20px;
-      text-align: center;
-      color: #0056b3;
-    }
-    h2 {
-      font-size: 22px;
-      font-weight: bold;
-      margin-top: 40px;
-      margin-bottom: 20px;
-      color: #0056b3;
-      border-bottom: 2px solid #ddd;
-      padding-bottom: 5px;
-    }
-    h3 {
-      font-size: 18px;
-      font-weight: bold;
-      margin-top: 20px;
-      margin-bottom: 10px;
-      color: #0056b3;
-    }
+    h1 { font-size:28px; color:#0056b3; text-align:center; margin-bottom:20px; }
+    h2 { font-size:22px; color:#0056b3; border-bottom:2px solid #ddd; padding-bottom:5px; margin:40px 0 20px; }
+    h3 { font-size:18px; color:#0056b3; margin:20px 0 10px; }
   
     /* Tables */
     table {
-      width: 100%;
-      border-collapse: collapse;
-      page-break-inside: auto;
-      margin-bottom: 20px;
+      width:100%;
+      border-collapse:collapse;
+      page-break-inside:auto;
+      margin-bottom:20px;
     }
     tr {
-      page-break-inside: avoid;
-      page-break-after: auto;
+      page-break-inside:avoid;
+      page-break-after:auto;
     }
     th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      font-size: 13px;
-      vertical-align: top;
-      word-wrap: break-word;
+      border:1px solid #ccc;
+      padding:8px;
+      font-size:13px;
+      vertical-align:top;
+      /* allow long words or URLs to wrap */
+      overflow-wrap: break-word;
+      word-break: break-word;
+      white-space: normal;
     }
     th {
-      background: #0056b3;
-      color: #fff;
-      text-align: left;
+      background:#0056b3;
+      color:#fff;
+      text-align:left;
     }
     tr:nth-child(even) td {
-      background-color: #f9f9f9;
+      background:#f9f9f9;
+    }
+  
+    /* Pre/code blocks inside tables: preserve formatting but wrap long lines */
+    pre, code {
+      display:block;
+      background:#f0f0f0;
+      padding:5px;
+      border-radius:3px;
+      font-size:12px;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      margin:0;
     }
   
     /* Lists */
-    ul, ol {
-      margin: 10px 0 20px 20px;
-    }
-    li {
-      margin-bottom: 5px;
-      font-size: 14px;
-    }
+    ul, ol { margin:10px 0 20px 20px; }
+    li { margin-bottom:5px; font-size:14px; }
   
     /* Links */
-    a {
-      color: #0056b3;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-  
-    /* Preformatted blocks */
-    pre {
-      font-size: 12px;
-      background-color: #f0f0f0;
-      padding: 5px;
-      border-radius: 3px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      max-width: 100%;
-    }
+    a { color:#0056b3; text-decoration:none; }
+    a:hover { text-decoration:underline; }
   
     /* Highlight boxes */
-    .score {
-      font-weight: bold;
-      background-color: #e6f2ff;
-      padding: 5px;
-      border-radius: 3px;
-    }
-    .error {
-      color: #b30000;
-      background-color: #ffcccc;
-      padding: 5px;
-      border-radius: 3px;
-    }
+    .score { background:#e6f2ff; padding:5px; border-radius:3px; font-weight:bold; }
+    .error { background:#ffcccc; padding:5px; border-radius:3px; color:#b30000; }
   
     /* Section breaks */
-    .section {
-      page-break-after: always;
-    }
-    .section:last-child {
-      page-break-after: auto;
-    }
+    .section { page-break-after:always; }
+    .section:last-child { page-break-after:auto; }
   
     /* Semantic coloring */
-    .score.good { color: green; }
-    .score.needs-improvement { color: orange; }
-    .score.poor { color: red; }
+    .score.good { color:green; }
+    .score.needs-improvement { color:orange; }
+    .score.poor { color:red; }
   
-    .impact-minor    { background-color: #e6ffe6; }
-    .impact-moderate { background-color: #fff5e6; }
-    .impact-serious  { background-color: #ffe6e6; }
-    .impact-critical { background-color: #ffcccc; }
+    .impact-minor    { background:#e6ffe6; }
+    .impact-moderate { background:#fff5e6; }
+    .impact-serious  { background:#ffe6e6; }
+    .impact-critical { background:#ffcccc; }
   </style>
+  
   
 </head>
 
