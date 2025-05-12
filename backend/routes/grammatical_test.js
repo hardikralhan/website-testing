@@ -14,11 +14,9 @@ router.post('/grammar-check', async (req, res) => {
   console.info(`➡️  Grammar check requested for ${url}`);
 
   try {
-    // 1. scrape only visible text blocks
     const blocks = await extractTextBlocks(url);
     console.info(`   ↪️  Extracted ${blocks.length} text blocks`);
 
-    // 2. grammar‐check each block
     const issues = [];
     for (const block of blocks) {
       let matches = [];
@@ -28,28 +26,25 @@ router.post('/grammar-check', async (req, res) => {
         console.error('   ❌ Grammar API error:', e.message);
         continue;
       }
-
       for (const m of matches) {
         const idx = block.indexOf(m.phrase);
         if (idx < 0) continue;
-        const before = block.slice(Math.max(0, idx - 30), idx);
+        const before = block.slice(Math.max(0, idx - 30), idx).trimEnd();
         const errorText = block.slice(idx, idx + m.phrase.length);
-        const after  = block.slice(idx + m.phrase.length, idx + m.phrase.length + 30);
+        const after = block
+          .slice(idx + m.phrase.length, idx + m.phrase.length + 30)
+          .trimStart();
 
-        const context = [before.trimEnd(), '**' + errorText + '**', after.trimStart()]
+        // Use **bold** markers only
+        const context = [before, `**${errorText}**`, after]
           .join(' ')
           .replace(/\s+/g, ' ')
           .trim();
 
-        issues.push({
-          context,
-          suggestion: m.suggestion,
-          message:    m.message
-        });
+        issues.push({ context, suggestion: m.suggestion, message: m.message });
       }
     }
 
-    // 3. respond
     if (!issues.length) {
       console.info('✅ No grammar issues detected');
       return res.json({ message: 'No grammar or typo issues detected.' });
@@ -64,8 +59,8 @@ router.post('/grammar-check', async (req, res) => {
 });
 
 /**
- * Scrape the page at `url`, remove non-content elements,
- * replace <br> with newlines, and return an array of text blocks.
+ * Extracts visible text blocks from the page at `url`, splitting
+ * each text node and each span so they come back separately.
  */
 async function extractTextBlocks(url) {
   let browser;
@@ -77,22 +72,32 @@ async function extractTextBlocks(url) {
     await browser.close();
 
     const $ = cheerio.load(html);
-    // Remove boilerplate
+    // remove non-content
     $('script, style, nav, header, footer, form').remove();
-    // Turn <br> into newline
+    // preserve line breaks
     $('br').replaceWith('\n');
 
     const blocks = [];
-    $('p, h1, h2, h3, h4, h5, h6, li').each((_, el) => {
-      const raw = $(el).text();
-      raw.split('\n').forEach(line => {
-        let text = line
-          .replace(/([a-z0-9])([A-Z])/g, '$1 $2')   // split camelWords
-          .replace(/\s+/g, ' ')
-          .trim();
-        if (text.length > 20) {
-          blocks.push(text);
+    // for each block-level or span element...
+    $('div, span, p, h1, h2, h3, h4, h5, h6, li').each((_, el) => {
+      // inspect its children so spans and text nodes are separate
+      $(el).contents().each((_, node) => {
+        let text = '';
+        if (node.type === 'text') {
+          text = node.data;
+        } else if (node.type === 'tag' && node.name === 'span') {
+          text = $(node).text();
+        } else {
+          return;
         }
+        // split on any newline and normalize
+        text.split('\n').forEach(line => {
+          const t = line
+            .replace(/([a-z0-9])([A-Z])/g, '$1 $2') // split camelCase
+            .replace(/\s+/g, ' ')
+            .trim();
+          if (t.length > 20) blocks.push(t);
+        });
       });
     });
 
@@ -104,9 +109,8 @@ async function extractTextBlocks(url) {
   }
 }
 
-/**
- * Call LanguageTool API to check grammar on a single text block.
- * Returns an array of match objects: { phrase, suggestion, message }.
+/** 
+ * Hits LanguageTool and returns an array of { phrase, suggestion, message } 
  */
 async function checkGrammar(text) {
   const LT_URL = 'https://api.languagetool.org/v2/check';
