@@ -45,9 +45,9 @@ router.post('/pdf-report', async (req, res) => {
   // 1️⃣ Crawl site for links
   let allLinks;
   try {
-    // allLinks = await getAllLinks(startUrl);
+    allLinks = await getAllLinks(startUrl);
     // allLinks = ['https://www.digitalavenues.com/', 'https://www.digitalavenues.com/our-work']
-    allLinks = ['https://www.digitalavenues.com/']
+    // allLinks = ['https://www.digitalavenues.com/']
     console.info(`ℹ️  Found ${allLinks.length} unique links to report on`);
   } catch (crawlErr) {
     console.error('❌ Site crawl failed:', crawlErr);
