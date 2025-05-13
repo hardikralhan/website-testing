@@ -31,34 +31,36 @@
     h3 { font-size:18px; color:#0056b3; margin:20px 0 10px; }
   
     /* Tables */
-    table {
-      width:100%;
-      border-collapse:collapse;
-      page-break-inside:auto;
-      margin-bottom:20px;
-    }
-    tr {
-      page-break-inside:avoid;
-      page-break-after:auto;
-    }
-    th, td {
-      border:1px solid #ccc;
-      padding:8px;
-      font-size:13px;
-      vertical-align:top;
-      /* allow long words or URLs to wrap */
-      overflow-wrap: break-word;
-      word-break: break-word;
-      white-space: normal;
-    }
-    th {
-      background:#0056b3;
-      color:#fff;
-      text-align:left;
-    }
-    tr:nth-child(even) td {
-      background:#f9f9f9;
-    }
+table {
+  width:100%;
+  border-collapse:collapse;
+  page-break-inside:auto;
+  margin-bottom:20px;
+}
+tr {
+  page-break-inside:avoid;
+  page-break-after:auto;
+}
+th, td {
+  border:1px solid #ccc;
+  padding:8px;
+  font-size:13px;
+  vertical-align:top;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+}
+th:first-child, td:first-child {
+  min-width: 120px;
+}
+th {
+  background:#0056b3;
+  color:#fff;
+  text-align:left;
+}
+tr:nth-child(even) td {
+  background:#f9f9f9;
+}
   
     /* Pre/code blocks inside tables: preserve formatting but wrap long lines */
     pre, code {
